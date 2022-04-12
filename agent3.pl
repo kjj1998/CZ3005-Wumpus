@@ -451,8 +451,38 @@ decide_next_step_when_safe(X,Y,D,L):-
 		(
 			check_visited_count(X,Y,Dir),
 			(
-				( Dir == D, L = moveforward );
-				L = turnleft
+				(
+					Dir == rnorth,
+					(
+						( (D == rsouth; D == rwest), L = turnright );
+						( D == rnorth, L = moveforward );
+						( D == reast, L = turnleft )
+					)
+				);
+				(
+					Dir == rwest,
+					(
+						( (D == rnorth; D == reast), L = turnleft );
+						( D == rsouth, L = turnright );
+						( D == rwest, L = moveforward)
+					)
+				);
+				(
+					Dir == rsouth,
+					(
+						( (D == rnorth; D == rwest), L = turnleft );
+						( D == reast, L = turnright );
+						( D == rsouth, L = moveforward)
+					)
+				);
+				(
+					Dir == reast,
+					(
+						( (D == rnorth; D == rwest), L = turnright );
+						( D == rsouth, L = turnleft );
+						( D == reast, L = moveforward)
+					)
+				)
 			)
 		)
 	).
