@@ -28,7 +28,8 @@
 %% keeps track of whether the wumpus is alive or not
 :- dynamic wumpus_alive/1.
 
-:- dynamic certified_safe/2.
+:- dynamic certified_no_confundus/2.
+:- dynamic certified_no_wumpus/2.
 
 %% returns true if the Agent has reasoned that position(X,Y) is safe i.e. does not contain a Wumpus or a Confundus portal
 safe(X,Y):-
@@ -115,7 +116,7 @@ update_current_pos:-
 %% assert wumpus if not already present in the database
 assert_wumpus_if_not_present(X,Y):-
 	(
-		\+ wumpus(X,Y), \+ visited(X,Y),
+		\+ wumpus(X,Y), \+ visited(X,Y), \+ certified_no_wumpus(X,Y),
 		\+ tingle(X,Y), assert(wumpus(X,Y))
 	);
 	true.
@@ -134,7 +135,7 @@ check_stench_indicator(A):-
 %% assert confundus if not already present in the database
 assert_confundus_if_not_present(X,Y):-
   (
-		\+ confundus(X,Y), \+ visited(X,Y),
+		\+ confundus(X,Y), \+ visited(X,Y), \+ certified_no_confundus(X,Y),
 		\+ stench(X,Y), assert(confundus(X,Y))
 	);
 	true.
@@ -175,7 +176,8 @@ remove_any_confundus_wumpus_from_wall(X,Y):-
 	(
 		(confundus(X,Y), wumpus(X,Y), retract(confundus(X,Y), retract(wumpus(X,Y))));
 		(wumpus(X,Y), retract(wumpus(X,Y)));
-		(confundus(X,Y), retract(confundus(X,Y)))
+		(confundus(X,Y), retract(confundus(X,Y)));
+		true
 	).
 
 %% Agent moves forward and encounters a Confundus portal
@@ -230,16 +232,16 @@ move(Action, [Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
 
 check_for_possible_wumpus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot):-
 	(
-		(wumpus(Xtop, Ytop), retract(wumpus(Xtop, Ytop))); true
+		(wumpus(Xtop, Ytop), retract(wumpus(Xtop, Ytop)), assert(certified_no_wumpus(Xtop, Ytop))); true
 	),
 	(
-		(wumpus(Xleft, Yleft), retract(wumpus(Xleft, Yleft))); true
+		(wumpus(Xleft, Yleft), retract(wumpus(Xleft, Yleft)), assert(certified_no_wumpus(Xleft, Yleft))); true
 	),
 	(
-		(wumpus(Xright, Yright), retract(wumpus(Xright, Yright))); true
+		(wumpus(Xright, Yright), retract(wumpus(Xright, Yright)), assert(certified_no_wumpus(Xright, Yright))); true
 	),
 	(
-		(wumpus(Xbot, Ybot), retract(wumpus(Xbot, Ybot))); true
+		(wumpus(Xbot, Ybot), retract(wumpus(Xbot, Ybot)), assert(certified_no_wumpus(Xbot, Ybot))); true
 	).
 
 decide_next_step_when_tingle(X,Y,D,L):-
@@ -285,16 +287,16 @@ decide_next_step_when_tingle(X,Y,D,L):-
 
 check_for_possible_confundus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot):-
 	(
-		(confundus(Xtop, Ytop), retract(confundus(Xtop, Ytop))); true
+		(confundus(Xtop, Ytop), retract(confundus(Xtop, Ytop)), assert(certified_no_confundus(Xtop, Ytop))); true
 	),
 	(
-		(confundus(Xleft, Yleft), retract(confundus(Xleft, Yleft))); true
+		(confundus(Xleft, Yleft), retract(confundus(Xleft, Yleft)), assert(certified_no_confundus(Xleft, Yleft))); true
 	),
 	(
-		(confundus(Xright, Yright), retract(confundus(Xright, Yright))); true
+		(confundus(Xright, Yright), retract(confundus(Xright, Yright)), assert(certified_no_confundus(Xright, Yright))); true
 	),
 	(
-		(confundus(Xbot, Ybot), retract(confundus(Xbot, Ybot))); true
+		(confundus(Xbot, Ybot), retract(confundus(Xbot, Ybot)), assert(certified_no_confundus(Xbot, Ybot))); true
 	).
 
 decide_next_step_when_stench(X,Y,D,L):-
