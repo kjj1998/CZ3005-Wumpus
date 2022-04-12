@@ -171,6 +171,13 @@ check_glitter_indicator(A):-
 		assert_glitter_if_not_present(X,Y)
 	).
 
+remove_any_confundus_wumpus_from_wall(X,Y):-
+	(
+		(confundus(X,Y), wumpus(X,Y), retract(confundus(X,Y), retract(wumpus(X,Y))));
+		(wumpus(X,Y), retract(wumpus(X,Y)));
+		(confundus(X,Y), retract(confundus(X,Y)))
+	).
+
 %% Agent moves forward and encounters a Confundus portal
 move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
 	Confunded == on, Action == moveforward,
@@ -180,10 +187,10 @@ move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
 move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
 	Action == moveforward, Bump == on, current(X,Y,D),
 	(
-		( D == rnorth, Ynew is Y + 1, assert(wall(X,Ynew)) );
-		( D == rsouth, Ynew is Y - 1, assert(wall(X,Ynew)) );
-		( D == rwest, Xnew is X - 1, assert(wall(Xnew,Y)) );
-		( D == reast, Xnew is X + 1, assert(wall(Xnew, Y)) )
+		( D == rnorth, Ynew is Y + 1, remove_any_confundus_wumpus_from_wall(X,Ynew), assert(wall(X,Ynew)) );
+		( D == rsouth, Ynew is Y - 1, remove_any_confundus_wumpus_from_wall(X,Ynew), assert(wall(X,Ynew)) );
+		( D == rwest, Xnew is X - 1, remove_any_confundus_wumpus_from_wall(Xnew,Y), assert(wall(Xnew,Y)) );
+		( D == reast, Xnew is X + 1, remove_any_confundus_wumpus_from_wall(Xnew,Y), assert(wall(Xnew,Y)) )
 	).
 
 %% Agent turns left
@@ -242,28 +249,38 @@ decide_next_step_when_tingle(X,Y,D,L):-
 	Xbot is X, Ybot is Y-1,
 	check_for_possible_wumpus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot),
 	(
-		\+ confundus(Xtop,Ytop),
-		( (D == rsouth; D == rwest), L = turnright );
-		( D == reast, L = turnleft );
-		( D == rnorth, L = moveforward )
-	);
-	(
-		\+ confundus(Xleft,Yleft),
-		( (D == rsouth; D == reast), L = turnright );
-		( D == rnorth, L = turnleft	);
-		( D == rwest, L = moveforward )
-	);
-	(
-		\+ confundus(Xright,Yright),
-		( (D == rsouth; D == rwest), L = turnleft );
-		( D == rnorth, L = turnright );
-		( D == rwest, L = moveforward )
-	);
-	(
-		\+ confundus(Xbot,Ybot),
-		( D == rsouth, L = moveforward );
-		( (D == rnorth; D == reast), L = turnright );
-		( D == rwest, L = turnleft )
+		(
+			\+ confundus(Xtop,Ytop),
+			(
+				( (D == rsouth; D == rwest), L = turnright );
+				( D == reast, L = turnleft );
+				( D == rnorth, L = moveforward )
+			)
+		);
+		(
+			\+ confundus(Xleft,Yleft),
+			(
+				( (D == rsouth; D == reast), L = turnright );
+				( D == rnorth, L = turnleft	);
+				( D == rwest, L = moveforward )
+			)
+		);
+		(
+			\+ confundus(Xright,Yright),
+			(
+				( (D == rsouth; D == rwest), L = turnleft );
+				( D == rnorth, L = turnright );
+				( D == reast, L = moveforward )
+			)
+		);
+		(
+			\+ confundus(Xbot,Ybot),
+			(
+				( D == rsouth, L = moveforward );
+				( (D == rnorth; D == reast), L = turnright );
+				( D == rwest, L = turnleft )
+			)
+		)
 	).
 
 check_for_possible_confundus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot):-
