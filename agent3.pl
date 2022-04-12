@@ -177,8 +177,8 @@ move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
 	reposition([on,off,off,off,off,off]).
 
 %% Agent moves forward and encounters a Wall
-move(moveforward,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
-	Bump == on, current(X,Y,D),
+move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+	Action == moveforward, Bump == on, current(X,Y,D),
 	(
 		( D == rnorth, Ynew is Y + 1, assert(wall(X,Ynew)) );
 		( D == rsouth, Ynew is Y - 1, assert(wall(X,Ynew)) );
@@ -187,34 +187,39 @@ move(moveforward,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
 	).
 
 %% Agent turns left
-move(turnleft,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
-	change_relative_direction(turnleft).
+move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+	Action == turnleft,
+	change_relative_direction(Action).
 
 %% Agent turns right
-move(turnright,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+	Action == turnright,
 	change_relative_direction(turnright).
 
 %% Agent moves forward and encounter either a Stench, Tingle and/or Glitter
-move(moveforward,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
-	update_current_pos,
+move(Action,[Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+	Action == moveforward, update_current_pos,
 	check_stench_indicator(Stench), check_tingle_indicator(Tingle), check_glitter_indicator(Glitter).
 
 %% Agent asked to pick up a coin
-move(pickup, [Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
-	current(X,Y,D), glitter(X,Y),
+move(Action, [Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+	Action == pickup, current(X,Y,D), glitter(X,Y),
 	num_of_coins(N), increment_coins(N),
 	retract(glitter(X,Y)).
 
 %% Agent shoots its arrow
-move(shoot, [Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+move(Action, [Confunded|[Stench|[Tingle|[Glitter|[Bump|[Scream]]]]]]):-
+	Action == shoot,
 	(
-		arrow(1), retract(arrow(1)), assert(arrow(0)),
 		(
-			( Scream == on, retract(wumpus_alive(1)), assert(wumpus_alive(0)), retractall(stench(_,_)), retractall(wumpus(_,_)) );
-			( Scream == off )
-		)
-	);
-	true.
+			arrow(1), retract(arrow(1)), assert(arrow(0)),
+			(
+				( Scream == on, retract(wumpus_alive(1)), assert(wumpus_alive(0)), retractall(stench(_,_)), retractall(wumpus(_,_)) );
+				( Scream == off )
+			)
+		);
+		true
+	).
 
 check_for_possible_wumpus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot):-
 	(
@@ -238,26 +243,26 @@ decide_next_step_when_tingle(X,Y,D,L):-
 	check_for_possible_wumpus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot),
 	(
 		\+ confundus(Xtop,Ytop),
-		( D == rsouth; D == rwest, L = turnright );
+		( (D == rsouth; D == rwest), L = turnright );
 		( D == reast, L = turnleft );
 		( D == rnorth, L = moveforward )
 	);
 	(
 		\+ confundus(Xleft,Yleft),
-		( D == rsouth; D == reast, L = turnright );
-		( D == rnorth; L = turnleft	);
+		( (D == rsouth; D == reast), L = turnright );
+		( D == rnorth, L = turnleft	);
 		( D == rwest, L = moveforward )
 	);
 	(
 		\+ confundus(Xright,Yright),
-		( D == rsouth; D == rwest, L = turnleft );
-		( D == rnorth; L = turnright );
+		( (D == rsouth; D == rwest), L = turnleft );
+		( D == rnorth, L = turnright );
 		( D == rwest, L = moveforward )
 	);
 	(
 		\+ confundus(Xbot,Ybot),
 		( D == rsouth, L = moveforward );
-		( D == rnorth; D == reast, L = turnright );
+		( (D == rnorth; D == reast), L = turnright );
 		( D == rwest, L = turnleft )
 	).
 
@@ -282,28 +287,38 @@ decide_next_step_when_stench(X,Y,D,L):-
 	Xbot is X, Ybot is Y-1,
 	check_for_possible_confundus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot),
 	(
-		\+ wumpus(Xtop,Ytop),
-		( D == rsouth; D == rwest, L = turnright );
-		( D == reast, L = turnleft );
-		( D == rnorth, L = moveforward )
-	);
-	(
-		\+ wumpus(Xleft,Yleft),
-		( D == rsouth; D == reast, L = turnright );
-		( D == rnorth; L = turnleft	);
-		( D == rwest, L = moveforward )
-	);
-	(
-		\+ wumpus(Xright,Yright),
-		( D == rsouth; D == rwest, L = turnleft );
-		( D == rnorth; L = turnright );
-		( D == rwest, L = moveforward )
-	);
-	(
-		\+ wumpus(Xbot,Ybot),
-		( D == rsouth, L = moveforward );
-		( D == rnorth; D == reast, L = turnright );
-		( D == rwest, L = turnleft )
+		(
+			\+ wumpus(Xtop,Ytop),
+			(
+				( (D == rsouth; D == rwest), L = turnright );
+				( D == reast, L = turnleft );
+				( D == rnorth, L = moveforward )
+			)
+		);
+		(
+			\+ wumpus(Xright,Yright),
+			(
+				( (D == rsouth; D == rwest), L = turnleft );
+				( D == rnorth; L = turnright );
+				( D == reast, L = moveforward )
+			)
+		);
+		(
+			\+ wumpus(Xleft,Yleft),
+			(
+				( (D == rsouth; D == reast ), L = turnright );
+				( D == rnorth; L = turnleft );
+				( D == rwest, L = moveforward )
+			)	
+		);
+		(
+			\+ wumpus(Xbot,Ybot),
+			(
+				( D == rsouth, L = moveforward );
+				( (D == rnorth; D == reast), L = turnright );
+				( D == rwest, L = turnleft )
+			)
+		)
 	).
 
 decide_next_step_when_stench_and_tingle(X,Y,D,L):-
@@ -312,28 +327,38 @@ decide_next_step_when_stench_and_tingle(X,Y,D,L):-
 	Xright is X+1, Yright is Y,
 	Xbot is X, Ybot is Y-1,
 	(
-		\+ wumpus(Xtop,Ytop), \+confundus(Xtop,Ytop),
-		( D == rsouth; D == rwest, L = turnright );
-		( D == reast, L = turnleft );
-		( D == rnorth, L = moveforward )
-	);
-	(
-		\+ wumpus(Xleft,Yleft), \+confundus(Xleft,Yleft),
-		( D == rsouth; D == reast, L = turnright );
-		( D == rnorth; L = turnleft	);
-		( D == rwest, L = moveforward )
-	);
-	(
-		\+ wumpus(Xright,Yright), \+confundus(Xright,Yright),
-		( D == rsouth; D == rwest, L = turnleft );
-		( D == rnorth; L = turnright );
-		( D == rwest, L = moveforward )
-	);
-	(
-		\+ wumpus(Xbot,Ybot), \+confundus(Xbot,Ybot),
-		( D == rsouth, L = moveforward );
-		( D == rnorth; D == reast, L = turnright );
-		( D == rwest, L = turnleft )
+		(
+			\+ wumpus(Xtop,Ytop), \+ confundus(Xtop,Ytop),
+			(
+				( (D == rsouth; D == rwest), L = turnright );
+				( D == reast, L = turnleft );
+				( D == rnorth, L = moveforward )
+			)
+		);
+		(
+			\+ wumpus(Xleft,Yleft), \+ confundus(Xleft,Yleft),
+			(
+				( (D == rsouth; D == reast), L = turnright );
+				( D == rnorth, L = turnleft	);
+				( D == rwest, L = moveforward )
+			)
+		);
+		(
+			\+ wumpus(Xright,Yright), \+ confundus(Xright,Yright),
+			(
+				( (D == rsouth; D == rwest), L = turnleft );
+				( D == rnorth, L = turnright );
+				( D == reast, L = moveforward )
+			)
+		);
+		(
+			\+ wumpus(Xbot,Ybot), \+confundus(Xbot,Ybot),
+			(
+				( D == rsouth, L = moveforward );
+				( (D == rnorth; D == reast), L = turnright );
+				( D == rwest, L = turnleft )
+			)
+		)
 	).
 
 check_visited_count(X,Y,Dir):-
@@ -376,32 +401,42 @@ decide_next_step_when_safe(X,Y,D,L):-
 	(
 		(
 			\+ visited(Xtop,Ytop), \+ wall(Xtop,Ytop), \+ confundus(Xtop,Ytop), \+ wumpus(Xtop,Ytop),
-			( D == rsouth; D == rwest, L = turnright );
-			( D == reast, L = turnleft );
-			( D == rnorth, L = moveforward )
+			(
+				( (D == rsouth; D == rwest), L = turnright );
+				( D == reast, L = turnleft );
+				( D == rnorth, L = moveforward )
+			)
 		);
 		(
 			\+ visited(Xleft,Yleft), \+ wall(Xleft, Yleft), \+ confundus(Xleft,Yleft), \+ wumpus(Xleft,Yleft),
-			( D == rsouth; D == reast, L = turnright );
-			( D == rnorth; L = turnleft	);
-			( D == rwest, L = moveforward )
+			(
+				( (D == rsouth; D == reast), L = turnright );
+				( D == rnorth, L = turnleft	);
+				( D == rwest, L = moveforward )
+			)
 		);
 		(
 			\+ visited(Xbot,Ybot), \+ wall(Xbot, Ybot), \+ confundus(Xbot,Ybot), \+ wumpus(Xbot,Ybot),
-			( D == rsouth, L = moveforward );
-			( D == rnorth; D == reast, L = turnright );
-			( D == rwest, L = turnleft )
+			(
+				( D == rsouth, L = moveforward );
+				( (D == rnorth; D == reast), L = turnright );
+				( D == rwest, L = turnleft )
+			)		
 		);
 		(
 			\+ visited(Xright,Yright), \+ wall(Xright, Yright), \+ confundus(Xright,Yright), \+ wumpus(Xright,Yright),
-			( D == rsouth; D == rwest, L = turnleft );
-			( D == rnorth; L = turnright );
-			( D == reast, L = moveforward )
+			(
+				( (D == rsouth; D == rwest), L = turnleft );
+				( D == rnorth, L = turnright );
+				( D == reast, L = moveforward )
+			)
 		);
-		check_visited_count(X,Y,Dir),
 		(
-			( Dir == D, L = moveforward );
-			L = turnleft
+			check_visited_count(X,Y,Dir),
+			(
+				( Dir == D, L = moveforward );
+				L = turnleft
+			)
 		)
 	).
 
