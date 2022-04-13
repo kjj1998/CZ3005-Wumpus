@@ -299,6 +299,110 @@ check_for_possible_confundus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot):
 		(confundus(Xbot, Ybot), retract(confundus(Xbot, Ybot)), assert(certified_no_confundus(Xbot, Ybot))); true
 	).
 
+find_index_of_stench_vertical_coordinates(A,B,List):-
+	(
+		(
+			nth0(0, List, First),
+			nth0(1, List, Second),
+			nth0(0, First, FirstElemOfFirstCoord),
+			nth0(0, Second, FirstElemOfSecondCoord),
+			FirstElemOfFirstCoord == FirstElemOfSecondCoord,
+			A is 0, B is 1
+		);
+		(
+			nth0(0, List, First),
+			nth0(2, List, Third),
+			nth0(0, First, FirstElemOfFirstCoord),
+			nth0(0, Third, FirstElemOfThirdCoord),
+			FirstElemOfFirstCoord == FirstElemOfThirdCoord,
+			A is 0, B is 2
+		);
+		(
+			nth0(0, List, First),
+			nth0(3, List, Fourth),
+			nth0(0, First, FirstElemOfFirstCoord),
+			nth0(0, Fourth, FirstElemOfFourthCoord),
+			FirstElemOfFirstCoord == FirstElemOfFourthCoord,
+			A is 0, B is 3
+		);
+		(
+			nth0(1, List, Second),
+			nth0(2, List, Third),
+			nth0(0, Second, FirstElemOfSecondCoord),
+			nth0(0, Third, FirstElemOfThirdCoord),
+			FirstElemOfSecondCoord == FirstElemOfThirdCoord,
+			A is 1, B is 2
+		);
+		(
+			nth0(1, List, Second),
+			nth0(3, List, Fourth),
+			nth0(0, Second, FirstElemOfSecondCoord),
+			nth0(0, Fourth, FirstElemOfFourthCoord),
+			FirstElemOfSecondCoord == FirstElemOfFourthCoord,
+			A is 1, B is 3
+		);
+		(
+			nth0(2, List, Third),
+			nth0(3, List, Fourth),
+			nth0(0, Third, FirstElemOfThirdCoord),
+			nth0(0, Fourth, FirstElemOfFourthCoord),
+			FirstElemOfThirdCoord == FirstElemOfFourthCoord,
+			A is 2, B is 3
+		)
+	).
+
+find_wumpus_coordinates_from_vertical_stench_coord(Coord1, Coord2, Xcoord, Ycoord):-
+	nth0(0, Coord1, Xcoord),
+	nth0(1, Coord1, Ycoord1),
+	nth0(1, Coord2, Ycoord2),
+	Ycoord is (Ycoord1 + Ycoord2)/2.
+
+
+
+check_for_vertical_stenches(L,CurX,CurY,D):-
+	(
+		findall([X,Y],stench(X,Y),List),
+		find_index_of_stench_vertical_coordinates(A,B,List),
+		nth0(A, List, Coord1),
+		nth0(B, List, Coord2),
+		find_wumpus_coordinates_from_vertical_stench_coord(Coord1, Coord2, Xcoord, Ycoord),
+		(
+			(
+				CurX==Xcoord, CurY<Ycoord,
+				(
+					(D == rnorth, L = shoot);
+					((D == rwest; D == rsouth), L = turnright);
+					(D == reast, L = turnleft)
+				)
+			);
+			(
+				CurX==Xcoord, CurY>Ycoord,
+				(
+					(D == rsouth, L = shoot);
+					((D == rnorth; D == rwest), L = turnleft);
+					(D == reast, L = turnright)
+				)
+			);
+			(
+				CurX<Xcoord, CurY==Ycoord,
+				(
+					(D == reast, L = shoot);
+					((D == rsouth; D == rwest), L = turnleft);
+					(D == rnorth, L = turnright)
+				)
+			);
+			(
+				CurX>Xcoord, CurY==Ycoord,
+				(
+					(D == rwest, L = shoot);
+					((D == rnorth; D == reast), L = turnleft);
+					(D == rsouth, L = turnright)
+				)
+			)
+		)
+	);
+	false.
+
 decide_next_step_when_stench(X,Y,D,L):-
 	Xtop is X, Ytop is Y+1,
 	Xleft is X-1, Yleft is Y,
@@ -307,35 +411,42 @@ decide_next_step_when_stench(X,Y,D,L):-
 	check_for_possible_confundus(X,Y,Xtop,Ytop,Xleft,Yleft,Xright,Yright,Xbot,Ybot),
 	(
 		(
-			\+ wumpus(Xtop,Ytop),
-			(
-				( (D == rsouth; D == rwest), L = turnright );
-				( D == reast, L = turnleft );
-				( D == rnorth, L = moveforward )
-			)
+			aggregate_all(count, stench(X1,Y1), StenchCount),
+			StenchCount == 4,
+			check_for_vertical_stenches(L,X,Y,D)
 		);
 		(
-			\+ wumpus(Xright,Yright),
 			(
-				( (D == rsouth; D == rwest), L = turnleft );
-				( D == rnorth; L = turnright );
-				( D == reast, L = moveforward )
-			)
-		);
-		(
-			\+ wumpus(Xleft,Yleft),
+				\+ wumpus(Xtop,Ytop),
+				(
+					( (D == rsouth; D == rwest), L = turnright );
+					( D == reast, L = turnleft );
+					( D == rnorth, L = moveforward )
+				)
+			);
 			(
-				( (D == rsouth; D == reast ), L = turnright );
-				( D == rnorth; L = turnleft );
-				( D == rwest, L = moveforward )
-			)	
-		);
-		(
-			\+ wumpus(Xbot,Ybot),
+				\+ wumpus(Xright,Yright),
+				(
+					( (D == rsouth; D == rwest), L = turnleft );
+					( D == rnorth; L = turnright );
+					( D == reast, L = moveforward )
+				)
+			);
 			(
-				( D == rsouth, L = moveforward );
-				( (D == rnorth; D == reast), L = turnright );
-				( D == rwest, L = turnleft )
+				\+ wumpus(Xleft,Yleft),
+				(
+					( (D == rsouth; D == reast ), L = turnright );
+					( D == rnorth; L = turnleft );
+					( D == rwest, L = moveforward )
+				)	
+			);
+			(
+				\+ wumpus(Xbot,Ybot),
+				(
+					( D == rsouth, L = moveforward );
+					( (D == rnorth; D == reast), L = turnright );
+					( D == rwest, L = turnleft )
+				)
 			)
 		)
 	).
